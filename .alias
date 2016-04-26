@@ -1,0 +1,190 @@
+# Check /usr/doc/tcsh/examples/alias to see other possible values.
+##
+## @TODO Run ~/.bash_aliases, if it exists.
+##
+## 2013/06/07 WRL Added qenv
+##              - Converted $MACHTYPE test to case $OSTYPE
+## 2015/05/10 Removed optional "function" keyword; not supported archaicly
+## 2016/01/16 Only define qenv if being run under Bash (syntax problems with sh)
+##          - Run ~/.local_alias, if it exists.
+##          - Change builtin to command for sh compatability.
+
+#echo .alias...
+
+## Use builtin 'type' rather than extenal 'which'
+#type 2>/dev/null && alias which=type
+
+which /bin/busybox* >/dev/null 2>&1 && \
+   alias bb=`command ls /bin/busybox*|tail -1`
+alias	..='cd ..'
+alias	...='cd ../..'
+alias	cd-='cd -'
+alias	cd..='cd ..'
+alias	cp='cp -ip'
+#which _cdd >/dev/null 2>&1 && \
+#   alias cd='. _cdd'
+which clear >/dev/null 2>&1 && \
+   alias cls=clear
+alias	d=dir
+alias	df='df -h'
+alias	du='du -h'
+alias	del=rm
+alias	e=edit
+alias	global='find . -depth -type d  -exec '	## Use '{}' & to suffix with \;
+#alias	go='. ~/bin/go'
+#alias	goto='cd `where `'
+alias	l='ll -A'
+alias	la='ls -A'
+alias	ll='ls -l'
+alias	ls='ls -F'
+#alias	less='less -r'                          # raw control characters
+alias	mkdir='command mkdir -p'
+! which more  >/dev/null 2>&1 && \
+	alias more=less
+alias	md=mkdir
+alias	mv='mv -i'
+#alias	pg="command pg -n -s -p ' Page %d '"
+alias	path='echo PATH=$PATH'
+if [ -e /dev/clipboard ]; then
+	alias	pbcopy='cat >/dev/clipboard'
+	alias	pbpaste='cat /dev/clipboard'
+fi
+#alias	qenv='set|grep -E "^[A-Za-z0-1_\-]+="'
+alias	rd=rmdir
+alias	ren=mv
+alias	resolve='type -a'
+alias	scp='scp -p'
+alias	setvars="set|egrep '^[^ 	]+='"	## not prefixed with ' ' or '\t'
+which vim  >/dev/null 2>&1 && alias	vi=vim
+alias	whence='type -a'                        ## where, of a sort
+alias	where='find . -iname 2>/dev/null'
+alias	sh='$SHELL'
+
+if which svn >/dev/null 2>&1; then
+   alias commit='svn commit'
+   alias revert='svn revert'
+   alias status='svn status'
+   alias update='svn update'
+fi
+
+cd()
+{
+   local x1=$*
+   local x2
+	until [ "$x1" = "$x2" ]; do
+		x2=$x1
+		x1=${x1/.../..\/..}
+	done
+#  echo $x1|sed 's/\([^\\]\) /\1\\ /g'
+#   if [ `pwd` = "$HOME" ]; then
+#       command cd -;
+#   else
+#       command cd "${x1:-$HOME}";
+#   fi
+       command cd "${x1:--}";
+}
+
+diff() {
+	[ -d ".svn" ] && cmd=svn
+	git rev-parse --is-inside-work-tree &>/dev/null && cmd=git
+	if [ $# -lt 2 -a -n "$cmd" ]; then
+		$cmd diff "$@"
+	else
+		command diff "$@"
+	fi
+}
+
+edit()
+{
+   vi=vi
+   which vim >/dev/null 2>&1 && vi=vim
+   if [ $# -eq 0 ]; then
+	if [ -f "$EDTF" ]; then
+	   echo $EDTF
+	   ${EDITOR:-$vi} "$EDTF"
+	else
+	   [ -n "$EDTF" ] && echo \"$EDTF\" does not exist.
+	fi
+   else
+	export EDTF="$@"
+	${EDITOR:-$vi} "$@"
+   fi
+}
+
+go() {
+	local OPTERR=0
+	local OPTIND=0
+	local OPTARG=""
+	while getopts ':hs:' OPTION; do
+		case $OPTION in
+		s)
+			local entry="$OPTARG $(pwd)"
+			echo $entry >> ~/.go
+			echo Added $entry
+			complete -W "-s $(cut -d' ' -f1 <~/.go|tr '\n' ' ')" go
+			return 0
+			;;
+		h|\?|:)
+			[ "$OPTION" = ":" ] && echo "Option -$OPTARG requires an argument." >&2
+			printf "Usage: %s: [-s] nickname\n" "go" >&2
+			return 2
+			;;
+	  esac
+	done
+	if [ $# -eq 0 ]; then
+		cat ~/.go
+		return
+	fi
+	shift $(($OPTIND-1));
+#	[ -r ~/.go ] && cd `awk "/^$1[ \t]/ { GOPATH=\\$2 } END { printf \"%s\", GOPATH }" ~/.go|sed "s%~%$HOME%"` 
+	[ -r ~/.go ] && cd "`grep -i '^'$1'[ \t]' ~/.go |cut -d ' ' -f 2-|tail -1`"
+}
+[ -r ~/.go ] && complete -W "-s $(cut -d' ' -f1 <~/.go|tr '\n' ' ')" go
+
+## Go to directory name under current directory
+goto() {
+	cd `find . -iname "$1" -type d ! -path '*/.*/*' 2>/dev/null|head -1`
+}
+
+## mkdir; cd
+mcd() {
+	mkdir "$@" && cd "$@"
+}
+
+[ -n "$BASH" ] && eval '
+qenv() {
+	local vars=($(compgen -v))
+	local var
+	if [ -t 1 ]; then
+		local t_color="\033[33m"
+		local t_reset="\033[0m"
+	fi
+	for var in "${vars[@]}"; do
+		echo -ne $t_color$var$t_reset
+		echo "="$(eval echo \$${var})
+	done
+}'
+
+## OS exceptions
+## Enable color feature of select commands
+case "$OSTYPE" in
+   darwin*)                                ## Apple/Mac specific
+      alias	ls='ls -GF'
+      alias	start=open
+      alias	dir='ls -goG'
+      ;; 
+   cygwin)
+      alias start=cygstart
+      alias open=cygstart
+      alias	ls='ls --color -F'
+      alias	dir='ls -gG'
+      ;;
+   *)
+      if [ ! \( -d /jffs -a -d /cifs1 \) ]; then ## !Apple and !Tomato router
+         alias	ls='ls --color -F'
+      fi
+esac
+
+[ -n "$HOSTNAME" -a "$USER" != "root" ] && alias grep='grep --color'
+
+[ -r ~/.local_alias ] && . ~/.local_alias
