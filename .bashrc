@@ -1,22 +1,22 @@
 ## ~/.bashrc: Bash normally calls this only for interactive shells subordinate
 ## to the first-level login shell. To minimize duplication, this script is also
-## called from the corresponding .profile, when running under Bash, for 
-## bash-specific initialization when login Bash shell is invoked. 
+## called from the corresponding .profile, when running under Bash, for
+## bash-specific initialization when login Bash shell is invoked.
 ##
-## .bashrc  - General bash settings that also run in non-login shells
-## .alias	- [optional] Defines aliases (and functions)
-## .local   - [optional] Installation specific settings. 
+## .bashrc        - General bash settings that also run in non-login shells
+## .alias         - [optional] Defines aliases (and functions)
+## .profile_local - [optional] Installation specific settings.
 ##
 ## .profile is called in traditional, non-Bash interactive shells. .bashrc
-## is called for non-login, interactive Bash shells. This .bashrc .bashrc does 
-## the bash specific tasks and things that need to be repeated for secondary 
-## shells (e.g., aliases). 
+## is called for non-login, interactive Bash shells. This .bashrc .bashrc does
+## the bash specific tasks and things that need to be repeated for secondary
+## shells (e.g., aliases).
 
-## 06/07/2013 WRL Deleted AxxsNet specific settings 
+## 06/07/2013 WRL Deleted AxxsNet specific settings
 ## 01/16/2016 WRL Unset INPUTRC if ~/.inputrc exists (override potential default)
 
-## If not running interactively, don't do anything 
-## Could also check that $- does not contain 'i': case $-; *i*) ...;; *) ...;; esac 
+## If not running interactively, don't do anything
+## Could also check that $- does not contain 'i': case $-; *i*) ...;; *) ...;; esac
 [ -z "$PS1" ] && return
 
 [ "$RUN_BASHRC" ] && return
@@ -25,7 +25,7 @@
 RUN_BASHRC=true
 
 ## Some implementations invoke /etc/bash.bashrc for non-login, interactive
-## shells, then call ~/.bashrc. 
+## shells, then call ~/.bashrc.
 if [ -r /etc/bash.bashrc ]; then
 	## Execute common things that are bash independent
 	[ -n "$SHLVL" -o $SHLVL -eq 1 -a -z "$RUN_PROFILE" -a -r ~/.profile ] && . ~/.profile
@@ -37,7 +37,7 @@ if [ "$SHLVL" -a $SHLVL -eq 1 ]; then
 #	[ -n "$SHLVL" -o $SHLVL -eq 1 -a -r ~/.profile ] && . ~/.profile
 	## For completeness, check for ~/.bash_login
 	[ -r ~/.bash_login ] && . ~/.bash_login
-	## Perform 
+	## Perform
 ##	[ -r ~/bash_profile ] && . ~/bash_profile
 	## History Options:
 	## Don't put duplicate lines in the history.
@@ -71,28 +71,28 @@ fi
 
 ###############################################################################
 ## THE FOLLOWING RUNS FOR ALL SHELL LEVELS
-## Prefix prompt with shell level 
+## Prefix prompt with shell level
 ## (only need to set this for level 2 since it propagates down; except for ... ???
 ## "-o -r /etc/bash.bashrc -a $SHLVL -gt 1" is for those systems where it calls .profile, I think.
 #[ "$SHLVL" -a $SHLVL -eq 2 -o -r /etc/bash.bashrc -a $SHLVL -gt 1 ] && export PS1='[$SHLVL] '$PS1
 [ "$SHLVL" -a $SHLVL -eq 2 ] && PS1='[$SHLVL] '$PS1
 
 ## "complete" def'ns are not inherited in sub-shells
-##    Source any global comletions 
+##    Source any global comletions
 if [ -r /etc/bash_completion ]; then
-	. /etc/bash_completion 
+	. /etc/bash_completion
 	## This assumes that the global bash_completion will call ~/.bash_completion.
 	## !!! This might not be true for some systems, need to check that
 	##     ~/.bash_completion was invoked by /etc/bash_completion
 elif `type complete &>/dev/null`; then
 	if [ -r ~/.bash_completion ]; then
-		. ~/.bash_completion 
+		. ~/.bash_completion
 	else  ## Some defaults in case .bash_completion doesn't exist
 		if [ -r ~/.ssh/config ]; then
-			function compl_sshhosts() { 
+			function compl_sshhosts() {
 			COMPREPLY=(`grep "^Host\W$2" ~/.ssh/config |sed "s/Host[ \t]*//"|tr "\n" " "`)
-			[ "$2" -a "$REPLY" ] && export COMPREPLY 
-			}   
+			[ "$2" -a "$REPLY" ] && export COMPREPLY
+			}
 			`complete -p ssh &>/dev/null` || complete -F compl_sshhosts ssh
 			`complete -p scp &>/dev/null` || complete -F compl_sshhosts -S ":" -o default scp
 		fi
@@ -104,7 +104,7 @@ elif `type complete &>/dev/null`; then
 fi
 ## aliases are not inherited when sub-shell is invoked
 [ -r ~/.alias ] && . ~/.alias
-[ -r ~/.local -a -f ~/.local ] && . ~/.local
+[ -f ~/.local -a ! -e ~/.profile_local ] && mv ~/.local ~/.profile_local
+[ -r ~/.profile_local -a -f ~/.profile_local ] && . ~/.profile_local
 
 unset RUN_BASHRC
-
